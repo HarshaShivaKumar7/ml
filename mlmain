@@ -1,0 +1,184 @@
+__________________
+P5
+
+import numpy as np
+X = np.array(([2, 9], [1, 5], [3, 6]), dtype=float)
+y = np.array(([92], [86], [89]), dtype=float)
+X = X/np.amax(X,axis=0)
+y = y/100
+def sigmoid(x):
+  return 1/(1 + np.exp(-x))
+def sigmoid_grad(x):
+  return x * (1 - x)
+epoch=1000
+eta =0.2
+input_neurons = 2
+hidden_neurons = 3
+output_neurons = 1
+wh=np.random.uniform(size=(input_neurons,hidden_neurons))
+bh=np.random.uniform(size=(1,hidden_neurons))
+wout=np.random.uniform(size=(hidden_neurons,output_neurons))
+bout=np.random.uniform(size=(1,output_neurons))
+for i in range(epoch):
+  h_ip=np.dot(X,wh) + bh
+  h_act = sigmoid(h_ip)
+  o_ip=np.dot(h_act,wout) + bout
+  output = sigmoid(o_ip)
+  Eo = y-output
+  outgrad = sigmoid_grad(output)
+  d_output = Eo* outgrad
+  Eh = d_output.dot(wout.T)
+  hiddengrad = sigmoid_grad(h_act)
+  d_hidden = Eh * hiddengrad
+  wout += h_act.T.dot(d_output) *eta
+  wh += X.T.dot(d_hidden) *eta
+print("Normalized Input: \n" + str(X))
+print("Actual Output: \n" + str(y))
+print("Predicted Output: \n" ,output)
+
+
+__________________
+P6
+
+import pandas as pd
+msg=pd.read_csv('movie_rating.csv',names=['message','label'])
+print("The dimensiondata",msg.shape)
+msg['labelnum']=msg.label.map({'pos':1,'neg':0})
+X=msg.message
+y=msg.labelnum
+print(X)
+print(y)
+from sklearn.model_selection import train_test_split
+xtrain,xtest,ytrain,ytest=train_test_split(X,y,test_size=0.33)
+print(xtrain.shape)
+print(xtest.shape)
+print(ytrain.shape)
+print(ytest.shape)
+print("\nTraining dataset after split:")
+print(xtrain)
+print("\nTesting dataset after split")
+print(xtest)
+from sklearn.feature_extraction.text import CountVectorizer
+count_vect = CountVectorizer()
+xtrain_dtm = count_vect.fit_transform(xtrain)
+xtest_dtm=count_vect.transform(xtest)
+df=pd.DataFrame(xtrain_dtm.toarray(),columns=count_vect.get_feature_names())
+print(df)
+print(xtrain_dtm)
+from sklearn.naive_bayes import MultinomialNB
+clf = MultinomialNB().fit(xtrain_dtm,ytrain)
+predicted = clf.predict(xtest_dtm)
+from sklearn import metrics
+print('Accuracy metrics')
+print('Accuracy of the classifer is',metrics.accuracy_score(ytest,predicted))
+print('Confusion matrix')
+print(metrics.confusion_matrix(ytest,predicted))
+print('Recall and Precison ')
+print(metrics.recall_score(ytest,predicted))
+print(metrics.precision_score(ytest,predicted))
+
+
+__________________
+P7
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("Mall_Customers.csv")
+df.head()
+x = df.iloc[:, 1:-1].values
+print(x[:5])
+print("\n")
+from sklearn.preprocessing import LabelEncoder
+x[:, 0] = LabelEncoder().fit_transform(x[:, 0])
+print(x[:5])
+print("\n")
+from sklearn.mixture import GaussianMixture
+from sklearn.cluster import KMeans
+em_cluster = GaussianMixture(n_components = 5)
+km_cluster = KMeans(n_clusters=5)
+em_cluster.fit(x)
+km_cluster.fit(x)
+em_predictions = em_cluster.predict(x)
+km_predictions = km_cluster.predict(x)
+print("\nEM predictions")
+print(em_predictions)
+print("\nKM predictions")
+print(km_predictions)
+print("\n")
+import matplotlib.pyplot as plt1
+print(x)
+plt.scatter(x[:, 1], x[:, 2], c=em_predictions)
+plt.show()
+plt1.scatter(x[:, 1], x[:, 2], c=km_predictions)
+
+
+__________________
+P8
+
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn import datasets
+iris = datasets.load_iris()
+iris_data = iris.data
+iris_labels = iris.target
+x_train,x_test,y_train,y_test = train_test_split(iris_data,iris_labels,test_size=0.20)
+classifier = KNeighborsClassifier(n_neighbors=5)
+classifier.fit(x_train,y_train)
+print("\n Predicted Data")
+print(classifier.predict(x_test))
+y_pred = classifier.predict(x_test)
+print("\nTest data :")
+print(y_test)
+diff=y_pred-y_test
+print("\nResult is ")
+print(diff)
+print('\nTotal no of samples misclassfied =', sum(abs(diff)))
+print('\n Confusion matrix is as follows')
+print(confusion_matrix(y_test,y_pred))
+print('\n Accuracy Metrics')
+print(classification_report(y_test,y_pred))
+
+__________________
+P9
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+def kernel(point,xmat, k):
+  m,n = np.shape(xmat)
+  weights = np.mat(np.eye((m)))
+  for j in range(m):
+    diff = point - X[j]
+    weights[j,j] = np.exp(diff*diff.T/(-2.0*k**2))
+  return weights
+def localWeight(point,xmat,ymat,k):
+  wei = kernel(point,xmat,k)
+  W = (X.T*(wei*X)).I*(X.T*(wei*ymat.T))
+  return W
+def localWeightRegression(xmat,ymat,k):
+  m,n = np.shape(xmat)
+  ypred = np.zeros(m)
+  for i in range(m):
+    ypred[i] = xmat[i]*localWeight(xmat[i],xmat,ymat,k)
+  return ypred
+data = pd.read_csv('LR.csv')
+colA = np.array(data.colA)
+colB = np.array(data.colB)
+mcolA = np.mat(colA)
+mcolB = np.mat(colB)
+m= np.shape(mcolA)[1]
+one = np.ones((1,m),dtype=int)
+X= np.hstack((one.T,mcolA.T))
+print(X.shape)
+ypred = localWeightRegression(X,mcolB,0.5)
+SortIndex = X[:,1].argsort(0)
+xsort = X[SortIndex][:,0]
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.scatter(colA,colB, color='green')
+ax.plot(xsort[:,1],ypred[SortIndex], color = 'red', linewidth=5)
+plt.xlabel('colA')
+plt.ylabel('colB')
+plt.show();
